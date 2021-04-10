@@ -3,6 +3,7 @@ import hashlib
 import os
 clear = lambda: os.system('cls')
 
+
 def main():
     clear()
     print("MAIN MENU")
@@ -21,9 +22,6 @@ def main():
     else:
         Login()
 
-
-
-
 def Register():
     clear()
     print("REGISTER")
@@ -34,32 +32,34 @@ def Register():
         if userName != '':
             break
     userName = sanitizeName(userName)
-    while True:
-        userPassword = getpass("Enter Your Password: ")
-        if userPassword != '':
-            break
-    while True:
-        confirmPassword = getpass("Confirm Your Password: ")
-        if confirmPassword == userPassword:
-            break
-        else:
-            print("Passwords Don't Match")
-            print()
-
-    if userAlreadyExist(userName, userPassword):
+    if userAlreadyExist(userName):
+        displayUserAlreadyExistMessage()
+    else:
         while True:
-            print()
-            error = input("You Are Already Registered.\n\nPress (T) To Try Again:\nPress (L) To Login: ").lower()
-            if error == 't':
-                Register()
+            userPassword = getpass("Enter Your Password: ")
+            if userPassword != '':
                 break
-            elif error == 'l':
-                Login()
+        while True:
+            confirmPassword = getpass("Confirm Your Password: ")
+            if confirmPassword == userPassword:
                 break
-    addUserInfo([userName, hash_password(userPassword)])
-    
-    print()
-    print("Registered")
+            else:
+                print("Passwords Don't Match")
+                print()
+        if userAlreadyExist(userName, userPassword):
+            while True:
+                print()
+                error = input("You Are Already Registered.\n\nPress (T) To Try Again:\nPress (L) To Login: ").lower()
+                if error == 't':
+                    Register()
+                    break
+                elif error == 'l':
+                    Login()
+                    break
+        addUserInfo([userName, hash_password(userPassword)])
+
+        print()
+        print("Registered!")
 
 def Login():
     clear()
@@ -74,7 +74,7 @@ def Login():
 
     while True:
         userName = input("Enter Your Name: ").title()
-        userName = '-'.join(userName.split())
+        userName = sanitizeName(userName)
         if userName not in usersInfo:
             print("You Are Not Registered")
             print()
@@ -82,15 +82,13 @@ def Login():
             break
     while True:
         userPassword = getpass("Enter Your Password: ")
-        if  not check_password_hash(userPassword, usersInfo[userName]):
+        if not check_password_hash(userPassword, usersInfo[userName]):
             print("Incorrect Password")
             print()
         else:
             break
-
     print()
     print("Logged In!")
-
 
 def addUserInfo(userInfo: list):
     with open('userInfo.txt', 'a') as file:
@@ -99,17 +97,36 @@ def addUserInfo(userInfo: list):
             file.write(' ')
         file.write('\n')
 
-def userAlreadyExist(userName, userPassword):
-    userName = '-'.join(userName.split())
-    usersInfo = {}
-    with open('userInfo.txt', 'r') as file:
-        for line in file:
-            line = line.split()
-            if line[0] == userName and line[1] == userPassword:
-                usersInfo.update({line[0]: line[1]})
-    if usersInfo == {}:
+def userAlreadyExist(userName, userPassword=None):
+    if userPassword == None:
+        with open('userInfo.txt', 'r') as file:
+            for line in file:
+                line = line.split()
+                if line[0] == userName:
+                    return True
         return False
-    return usersInfo[userName] == userPassword
+    else:
+        userPassword = hash_password(userPassword)
+        usersInfo = {}
+        with open('userInfo.txt', 'r') as file:
+            for line in file:
+                line = line.split()
+                if line[0] == userName and line[1] == userPassword:
+                    usersInfo.update({line[0]: line[1]})
+        if usersInfo == {}:
+            return False
+        return usersInfo[userName] == userPassword
+
+def displayUserAlreadyExistMessage():
+    while True:
+        print()
+        error = input("You Are Already Registered.\n\nPress (T) To Try Again:\nPress (L) To Login: ").lower()
+        if error == 't':
+            Register()
+            break
+        elif error == 'l':
+            Login()
+            break
 
 def sanitizeName(userName):
     userName = userName.split()
@@ -120,8 +137,7 @@ def hash_password(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
 
 def check_password_hash(password, hash):
-    if hash_password(password) == hash:
-        return True
-    return False
+    return hash_password(password) == hash
+
 
 main()
